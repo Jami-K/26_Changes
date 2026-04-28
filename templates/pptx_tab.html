@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="mb-0 fw-bold" style="color: var(--navy);">
+    <i class="bi bi-file-earmark-slides me-2"></i>PPTX 생성
+  </h5>
+  <a href="/detail/{{ change.id }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>상세로 돌아가기
+  </a>
+</div>
+
+{% if need_auth %}
+<!-- ── 비밀번호 입력 ──────────────────────────────────────── -->
+<div class="row justify-content-center">
+  <div class="col-md-4">
+    <div class="card shadow">
+      <div class="card-header card-header-navy text-center">
+        <i class="bi bi-lock me-1"></i>PPTX 생성 권한 확인
+      </div>
+      <div class="card-body p-4">
+        {% if error %}
+        <div class="alert alert-danger py-2 small">{{ error }}</div>
+        {% endif %}
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">비밀번호</label>
+            <input type="password" class="form-control" name="password"
+                   autofocus placeholder="비밀번호를 입력하세요">
+          </div>
+          <button class="btn btn-navy w-100" type="submit">
+            <i class="bi bi-unlock me-1"></i>확인
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ── PPTX 생성 화면 ────────────────────────────────────── -->
+<div class="row g-4">
+
+  <!-- 변경점 요약 -->
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header card-header-navy">변경점 정보 확인</div>
+      <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+          <tbody>
+            {% set fields = [
+              ('notice_date',      '고지일'),
+              ('product_code',     '제품코드'),
+              ('product_name',     '제품명'),
+              ('changed_material', '변경자재'),
+              ('mixable',          '혼용가능여부'),
+              ('change_content',   '변경내용'),
+              ('apply_date',       '적용예정일'),
+              ('notes',            '특이사항'),
+            ] %}
+            {% for key, label in fields %}
+            <tr>
+              <td class="label-cell" style="width: 130px;">{{ label }}</td>
+              <td style="white-space: pre-wrap;">{{ change[key] or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 다운로드 패널 -->
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header card-header-navy">PPTX 슬라이드 구성</div>
+      <div class="card-body">
+
+        <!-- 슬라이드 미리보기 (텍스트 형태) -->
+        <div class="border rounded p-3 mb-3" style="background:#f8f9fa; font-size:.85rem;">
+          <div class="text-center fw-bold mb-2" style="color: var(--navy); font-size:1rem;">
+            자재 변경점
+          </div>
+          <table class="table table-sm table-bordered mb-0" style="font-size:.8rem;">
+            {% for key, label in [
+              ('notice_date','고지일'), ('product_code','제품코드'),
+              ('product_name','제품명'), ('changed_material','변경자재'),
+              ('mixable','혼용가능여부'), ('change_content','변경내용'),
+              ('apply_date','적용예정일'), ('notes','특이사항'),
+            ] %}
+            <tr>
+              <td class="label-cell" style="width:110px;">{{ label }}</td>
+              <td class="text-truncate" style="max-width:160px;">{{ change[key] or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+
+        <a href="/pptx_download/{{ change.id }}" class="btn btn-navy w-100">
+          <i class="bi bi-download me-2"></i>PPTX 다운로드
+        </a>
+        <p class="text-muted small mt-2 mb-0">
+          파일명: <code>변경점_{{ change.product_code }}_{{ change.notice_date }}.pptx</code>
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endif %}
+
+{% endblock %}

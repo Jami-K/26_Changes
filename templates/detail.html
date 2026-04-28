@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0 fw-bold" style="color: var(--navy);">
+    <i class="bi bi-file-earmark-text me-2"></i>변경점 상세
+  </h5>
+  <div class="d-flex gap-2">
+    <a href="/mail/{{ change.id }}" class="btn btn-outline-primary">
+      <i class="bi bi-envelope me-1"></i>메일 작성
+    </a>
+    <a href="/pptx_view/{{ change.id }}" target="_blank" class="btn btn-navy">
+      <i class="bi bi-file-earmark-slides me-1"></i>PPTX 생성
+    </a>
+    <a href="/" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>목록
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- 변경점 정보 테이블 -->
+  <div class="{{ 'col-lg-5' if image_list else 'col-12' }}">
+    <div class="card shadow-sm">
+      <div class="card-header card-header-navy">변경점 정보</div>
+      <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+          <tbody>
+            {% set fields = [
+              ('notice_date',      '고지일'),
+              ('product_code',     '제품코드'),
+              ('product_name',     '제품명'),
+              ('changed_material', '변경자재'),
+              ('mixable',          '혼용가능여부'),
+              ('change_content',   '변경내용'),
+              ('apply_date',       '적용예정일'),
+              ('notes',            '특이사항'),
+            ] %}
+            {% for key, label in fields %}
+            <tr>
+              <td class="label-cell" style="width: 130px;">{{ label }}</td>
+              <td style="white-space: pre-wrap;">{{ change[key] or '-' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 디자인 이미지 목록 -->
+  {% if image_list %}
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header card-header-navy d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-images me-1"></i>디자인 파일</span>
+        <span class="badge bg-secondary">{{ image_list | length }}개</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3" id="imageGrid">
+          {% for img in image_list %}
+          <div class="col-sm-6 col-md-4">
+            <div class="card h-100 image-card" onclick="openLightbox({{ img.idx }})">
+              <img src="/image/{{ change.id }}/{{ img.idx }}"
+                   class="card-img-top"
+                   alt="{{ img.name }}"
+                   style="height: 160px; object-fit: contain; padding: 8px; background: #f8f9fa;"
+                   onerror="this.closest('.image-card').querySelector('.img-err').style.display='block'; this.style.display='none';">
+              <div class="img-err text-center text-muted small p-2" style="display:none;">
+                <i class="bi bi-image-alt"></i><br>불러오기 실패
+              </div>
+              <div class="card-footer text-muted small text-truncate py-1 px-2">
+                {{ img.name }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="text-muted small mt-2 mb-0 text-break" style="font-size:.75rem;">
+          <i class="bi bi-folder me-1"></i>{{ change.design_file }}
+        </p>
+      </div>
+    </div>
+  </div>
+  {% elif change.design_file %}
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header card-header-navy"><i class="bi bi-folder me-1"></i>디자인 파일</div>
+      <div class="card-body text-muted">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        폴더를 찾을 수 없거나 이미지가 없습니다.<br>
+        <small class="text-break">{{ change.design_file }}</small>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- 라이트박스 모달 -->
+{% if image_list %}
+<div class="modal fade" id="lightbox" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-0 pb-0">
+        <span id="lbTitle" class="text-white small"></span>
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-2">
+        <img id="lbImg" src="" alt="" class="img-fluid" style="max-height:80vh; object-fit:contain;">
+      </div>
+      <div class="modal-footer border-0 pt-0 justify-content-center gap-3">
+        <button class="btn btn-outline-light btn-sm" onclick="moveLb(-1)">
+          <i class="bi bi-chevron-left"></i> 이전
+        </button>
+        <span id="lbCounter" class="text-white small align-self-center"></span>
+        <button class="btn btn-outline-light btn-sm" onclick="moveLb(1)">
+          다음 <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if image_list %}
+<script>
+const CID    = {{ change.id }};
+const TOTAL  = {{ image_list | length }};
+const NAMES  = {{ image_list | map(attribute='name') | list | tojson }};
+let current  = 0;
+let lbModal  = null;
+
+function openLightbox(idx) {
+  current = idx;
+  if (!lbModal) lbModal = new bootstrap.Modal(document.getElementById('lightbox'));
+  updateLb();
+  lbModal.show();
+}
+
+function moveLb(dir) {
+  current = (current + dir + TOTAL) % TOTAL;
+  updateLb();
+}
+
+function updateLb() {
+  document.getElementById('lbImg').src = `/image/${CID}/${current}`;
+  document.getElementById('lbTitle').textContent = NAMES[current];
+  document.getElementById('lbCounter').textContent = `${current + 1} / ${TOTAL}`;
+}
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  if (e.key === 'ArrowLeft')  moveLb(-1);
+  if (e.key === 'ArrowRight') moveLb(1);
+});
+</script>
+
+<style>
+.image-card { cursor: pointer; transition: box-shadow .15s; }
+.image-card:hover { box-shadow: 0 0 0 2px var(--navy) !important; }
+</style>
+{% endif %}
+{% endblock %}

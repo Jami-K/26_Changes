@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0 fw-bold" style="color: var(--navy);">
+    <i class="bi bi-envelope me-2"></i>메일 작성
+    <span class="text-muted fw-normal fs-6 ms-2">{{ change.product_name }}</span>
+  </h5>
+  <a href="/detail/{{ change.id }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>상세로 돌아가기
+  </a>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── 메일 작성 영역 ──────────────────────────────── -->
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header card-header-navy">메일 내용</div>
+      <div class="card-body">
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">제목</label>
+          <input type="text" class="form-control" id="mailSubject"
+                 value="{{ subject }}">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">본문</label>
+          <textarea class="form-control font-monospace"
+                    id="mailBody" rows="17"
+                    style="font-size:.875rem; line-height:1.6;">{{ body }}</textarea>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <button class="btn btn-navy" onclick="openOutlook()">
+            <i class="bi bi-envelope-arrow-up me-1"></i>Outlook으로 열기
+          </button>
+          <button class="btn btn-outline-secondary" id="copyBtn" onclick="copyBody()">
+            <i class="bi bi-clipboard me-1"></i>본문 복사
+          </button>
+          <span id="copyMsg" class="small text-success" style="display:none;">
+            <i class="bi bi-check-circle me-1"></i>복사됨
+          </span>
+        </div>
+
+        <div class="alert alert-info mt-3 py-2 small mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Outlook으로 열기</strong> 버튼은 선택된 수신자와 내용을 Outlook에 자동 입력합니다.
+          PPTX 첨부파일은 별도로 첨부해 주세요.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 수신자 목록 ──────────────────────────────────── -->
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header card-header-navy d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people me-1"></i>수신자</span>
+        {% if recipients %}
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-light py-0 px-2"
+                  style="font-size:.75rem;" onclick="toggleAll(true)">전체</button>
+          <button class="btn btn-sm btn-outline-light py-0 px-2"
+                  style="font-size:.75rem;" onclick="toggleAll(false)">해제</button>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if recipients %}
+          {% for r in recipients %}
+          <div class="form-check mb-3">
+            <input class="form-check-input recipient-check" type="checkbox"
+                   id="r{{ r.id }}" value="{{ r.email }}" checked>
+            <label class="form-check-label" for="r{{ r.id }}">
+              <span class="fw-semibold">{{ r.name }}</span><br>
+              <small class="text-muted">{{ r.email }}</small>
+            </label>
+          </div>
+          {% endfor %}
+          <hr class="my-2">
+          <p class="text-muted small mb-0" id="selectedCount"></p>
+        {% else %}
+          <p class="text-muted small mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            <a href="/settings">설정</a>에서 수신자를 추가하세요.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 변경점 요약 -->
+    <div class="card shadow-sm mt-3">
+      <div class="card-header card-header-navy">변경점 요약</div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-bordered mb-0" style="font-size:.85rem;">
+          <tbody>
+            <tr>
+              <td class="label-cell" style="width:90px;">제품명</td>
+              <td>{{ change.product_name or '-' }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell">변경자재</td>
+              <td>{{ change.changed_material or '-' }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell">혼용여부</td>
+              <td>{{ change.mixable or '-' }}</td>
+            </tr>
+            <tr>
+              <td class="label-cell">적용예정일</td>
+              <td>{{ change.apply_date or '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getSelectedEmails() {
+  return [...document.querySelectorAll('.recipient-check:checked')]
+    .map(el => el.value).join(';');
+}
+
+function updateCount() {
+  const total    = document.querySelectorAll('.recipient-check').length;
+  const checked  = document.querySelectorAll('.recipient-check:checked').length;
+  const el       = document.getElementById('selectedCount');
+  if (el) el.textContent = `${checked} / ${total}명 선택됨`;
+}
+
+function toggleAll(state) {
+  document.querySelectorAll('.recipient-check').forEach(el => el.checked = state);
+  updateCount();
+}
+
+function openOutlook() {
+  const to      = getSelectedEmails();
+  const subject = encodeURIComponent(document.getElementById('mailSubject').value);
+  const body    = encodeURIComponent(document.getElementById('mailBody').value);
+  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+}
+
+function copyBody() {
+  const text = document.getElementById('mailBody').value;
+  navigator.clipboard.writeText(text).then(() => {
+    const msg = document.getElementById('copyMsg');
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+  });
+}
+
+// 체크박스 변경 시 카운트 갱신
+document.querySelectorAll('.recipient-check').forEach(el => {
+  el.addEventListener('change', updateCount);
+});
+updateCount();
+</script>
+{% endblock %}
