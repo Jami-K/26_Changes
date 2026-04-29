@@ -5,37 +5,22 @@
   <i class="bi bi-gear me-2"></i>설정
 </h5>
 
-<!-- 엑셀 파일 경로 -->
+<!-- DB 동기화 -->
 <div class="card shadow-sm mb-4">
   <div class="card-header card-header-navy">
-    <i class="bi bi-file-earmark-excel me-1"></i>엑셀 파일 경로
+    <i class="bi bi-arrow-repeat me-1"></i>DB 동기화
   </div>
-  <div class="card-body">
-    <form method="post" class="mb-3">
-      <input type="hidden" name="action" value="save_excel">
-      <div class="input-group">
-        <input type="text" class="form-control font-monospace" name="excel_path"
-               value="{{ excel_path }}"
-               placeholder="예: \\서버명\공유폴더\변경점관리.xlsx  또는  C:\경로\파일.xlsx">
-        <button class="btn btn-navy" type="submit">
-          <i class="bi bi-save me-1"></i>저장
-        </button>
-      </div>
-      <div class="form-text">네트워크 공유 드라이브(UNC) 또는 로컬 경로를 입력하세요.</div>
-    </form>
-
-    <div class="d-flex align-items-center gap-3 flex-wrap">
-      {% if is_auth %}
-        <button class="btn btn-outline-primary btn-sm" onclick="doSync()">
-          <i class="bi bi-arrow-repeat me-1"></i>지금 동기화
-        </button>
-        <span id="syncMsg" class="small text-muted">마지막 동기화: {{ last_sync }}</span>
-      {% else %}
-        <span class="small text-warning">
-          <i class="bi bi-lock me-1"></i>동기화 권한 없음 — 아래에서 인증하세요
-        </span>
-      {% endif %}
-    </div>
+  <div class="card-body d-flex align-items-center gap-3 flex-wrap">
+    {% if is_auth %}
+      <button class="btn btn-outline-primary btn-sm" onclick="doSync()">
+        <i class="bi bi-arrow-repeat me-1"></i>지금 동기화
+      </button>
+      <span id="syncMsg" class="small text-muted">마지막 동기화: {{ last_sync }}</span>
+    {% else %}
+      <span class="small text-warning">
+        <i class="bi bi-lock me-1"></i>동기화 권한 없음 — 아래에서 인증하세요
+      </span>
+    {% endif %}
   </div>
 </div>
 

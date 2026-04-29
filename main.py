@@ -19,6 +19,7 @@ app.secret_key = 'mat-change-internal-2026'
 
 IMAGE_EXTS  = ('png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp')
 SERVER_URL  = 'http://192.168.60.160:5500'
+EXCEL_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.xlsx')
 
 
 def _build_email_body(change: dict) -> str:
@@ -76,20 +77,19 @@ def check_pptx_auth() -> bool:
 
 # ── 백그라운드 동기화 ─────────────────────────────────────────────────
 
+def _do_sync():
+    if os.path.isfile(EXCEL_PATH):
+        try:
+            sync_excel(EXCEL_PATH)
+            set_setting('last_sync', time.strftime('%Y-%m-%d %H:%M:%S'))
+        except Exception as e:
+            print(f'[sync] {e}')
+
+
 def _bg_sync():
-    last_mtime = 0
     while True:
-        time.sleep(60)
-        path = get_setting('excel_path')
-        if path and os.path.isfile(path):
-            try:
-                mtime = os.path.getmtime(path)
-                if mtime != last_mtime:
-                    sync_excel(path)
-                    last_mtime = mtime
-                    set_setting('last_sync', time.strftime('%Y-%m-%d %H:%M:%S'))
-            except Exception as e:
-                print(f'[bg_sync] {e}')
+        time.sleep(300)
+        _do_sync()
 
 
 threading.Thread(target=_bg_sync, daemon=True).start()
@@ -188,10 +188,6 @@ def settings():
     if request.method == 'POST':
         action = request.form.get('action')
 
-        if action == 'save_excel':
-            set_setting('excel_path', request.form.get('excel_path', '').strip())
-            return redirect(url_for('settings'))
-
         if action == 'settings_auth':
             pw = request.form.get('password', '')
             stored = get_setting('pptx_pw_hash')
@@ -204,13 +200,10 @@ def settings():
         if action == 'sync':
             if not check_pptx_auth():
                 return jsonify(success=False, error='인증이 필요합니다')
-            path = get_setting('excel_path')
-            if not path:
-                return jsonify(success=False, error='경로가 설정되지 않았습니다')
-            if not os.path.isfile(path):
-                return jsonify(success=False, error='파일을 찾을 수 없습니다')
+            if not os.path.isfile(EXCEL_PATH):
+                return jsonify(success=False, error='index.xlsx 파일을 찾을 수 없습니다')
             try:
-                n = sync_excel(path)
+                n = sync_excel(EXCEL_PATH)
                 set_setting('last_sync', time.strftime('%Y-%m-%d %H:%M:%S'))
                 return jsonify(success=True, inserted=n)
             except Exception as e:
@@ -235,13 +228,11 @@ def settings():
             delete_recipient(request.form.get('rid'))
             return redirect(url_for('settings'))
 
-    excel_path   = get_setting('excel_path')
     recipients   = get_recipients()
     last_sync    = get_setting('last_sync', '-')
     pptx_pw_set  = bool(get_setting('pptx_pw_hash'))
     is_auth      = bool(session.get('pptx_auth')) or not pptx_pw_set
     return render_template('settings.html',
-                           excel_path=excel_path,
                            recipients=recipients,
                            last_sync=last_sync,
                            pptx_pw_set=pptx_pw_set,
@@ -250,4 +241,5 @@ def settings():
 
 if __name__ == '__main__':
     init_db()
+    _do_sync()
     app.run(host='0.0.0.0', port=5000, debug=False)
