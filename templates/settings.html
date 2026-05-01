@@ -33,7 +33,7 @@
   <div class="card-body">
     {% if is_auth %}
       <span class="text-success fw-semibold">
-        <i class="bi bi-check-circle-fill me-1"></i>인증됨 — 동기화 및 PPTX 생성 가능
+        <i class="bi bi-check-circle-fill me-1"></i>인증됨 — 관리자 기능 사용 가능
       </span>
       <form method="post" class="d-inline ms-3">
         <input type="hidden" name="action" value="settings_auth">
@@ -52,10 +52,10 @@
 </div>
 {% endif %}
 
-<!-- PPTX 비밀번호 -->
+<!-- 관리자 비밀번호 설정 -->
 <div class="card shadow-sm mb-4">
   <div class="card-header card-header-navy">
-    <i class="bi bi-lock me-1"></i>PPTX 생성 비밀번호
+    <i class="bi bi-shield-lock me-1"></i>관리자 비밀번호
   </div>
   <div class="card-body">
     <form method="post">
@@ -64,7 +64,7 @@
         <input type="password" class="form-control" name="pptx_pw"
                placeholder="새 비밀번호 (비워두면 잠금 해제)">
         <button class="btn btn-navy" type="submit">
-          <i class="bi bi-shield-lock me-1"></i>저장
+          <i class="bi bi-save me-1"></i>저장
         </button>
       </div>
       <div class="form-text">
@@ -73,7 +73,7 @@
           — 비워두고 저장하면 잠금 해제
         {% else %}
           <span class="text-secondary"><i class="bi bi-unlock me-1"></i>현재 잠금 없음</span>
-          — 비밀번호를 입력하면 PPTX 생성 시 인증 필요
+          — 비밀번호를 설정하면 관리자 기능(메일·PPTX·PDF·수신자 편집) 사용 시 인증이 필요합니다
         {% endif %}
       </div>
     </form>

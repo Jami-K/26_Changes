@@ -3,7 +3,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h5 class="mb-0 fw-bold" style="color: var(--navy);">
-    <i class="bi bi-table me-2"></i>변경점 목록
+    <i class="bi bi-{{ 'table' if is_admin else 'grid' }} me-2"></i>변경점 목록
   </h5>
   <span class="sync-status"><i class="bi bi-clock me-1"></i>마지막 동기화: {{ last_sync }}</span>
 </div>
@@ -21,6 +21,9 @@
 </form>
 
 {% if changes %}
+
+{# ── 관리자: 테이블 뷰 ──────────────────────────────────────────── #}
+{% if is_admin %}
 <div class="card shadow-sm">
   <div class="table-responsive">
     <table class="table table-bordered table-hover mb-0 align-middle">
@@ -67,17 +70,94 @@
 </div>
 <p class="text-muted small mt-2">총 {{ changes | length }}건</p>
 
+{# ── 일반 사용자: 카드 그리드 뷰 ───────────────────────────────── #}
+{% else %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
+  {% for c in changes %}
+  <div class="col">
+    <a href="/detail/{{ c.id }}" class="text-decoration-none">
+      <div class="card h-100 shadow-sm change-card">
+
+        {# 디자인 이미지 미리보기 #}
+        {% if c.design_file %}
+        <img src="/image/{{ c.id }}/0"
+             class="card-img-top"
+             alt="{{ c.product_name }}"
+             style="height:180px; object-fit:contain; background:#f8f9fa; padding:8px;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="card-img-placeholder" style="display:none;">
+          <i class="bi bi-image text-muted" style="font-size:2.5rem;"></i>
+        </div>
+        {% else %}
+        <div class="card-img-placeholder">
+          <i class="bi bi-image text-muted" style="font-size:2.5rem;"></i>
+        </div>
+        {% endif %}
+
+        <div class="card-body pb-1">
+          <p class="card-title fw-semibold mb-1 text-truncate" style="color:var(--navy);">
+            {{ c.product_name or '-' }}
+          </p>
+          <code class="small text-secondary">{{ c.product_code or '-' }}</code>
+        </div>
+
+        <div class="card-footer bg-transparent border-top-0 pt-0 pb-2 px-3">
+          <small class="text-muted d-block text-truncate mb-1">{{ c.changed_material or '-' }}</small>
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              <i class="bi bi-calendar3 me-1"></i>{{ c.notice_date or '-' }}
+            </small>
+            {% set m = c.mixable | lower if c.mixable else '' %}
+            {% if m in ['가능', 'y', '예', 'yes', 'o', '○'] %}
+              <span class="badge badge-mixable-ok" style="font-size:.7rem;">{{ c.mixable }}</span>
+            {% elif m in ['불가', 'n', '아니오', 'no', 'x', '×'] %}
+              <span class="badge badge-mixable-no" style="font-size:.7rem;">{{ c.mixable }}</span>
+            {% else %}
+              <span class="badge badge-mixable-etc" style="font-size:.7rem;">{{ c.mixable or '-' }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+<p class="text-muted small mt-3">총 {{ changes | length }}건</p>
+{% endif %}
+
 {% else %}
 <div class="alert alert-info d-flex align-items-center gap-2">
   <i class="bi bi-info-circle-fill fs-5"></i>
   {% if q %}
     <span><strong>{{ q }}</strong>에 해당하는 변경점이 없습니다.</span>
   {% else %}
-    <span>등록된 변경점이 없습니다.
-      <a href="/settings" class="alert-link">설정</a>에서 엑셀 파일 경로를 지정하고 동기화하세요.
-    </span>
+    <span>등록된 변경점이 없습니다.</span>
   {% endif %}
 </div>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .change-card {
+    transition: transform .15s, box-shadow .15s;
+    cursor: pointer;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .change-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(26,53,110,.18) !important;
+  }
+  .card-img-placeholder {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f2f8;
+    border-bottom: 1px solid #dee2e6;
+  }
+</style>
 {% endblock %}
