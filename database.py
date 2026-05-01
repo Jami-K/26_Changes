@@ -23,9 +23,10 @@ def init_db():
                 change_content   TEXT,
                 apply_date       TEXT,
                 notes            TEXT,
-                design_file      TEXT DEFAULT '',
-                pdf_path         TEXT DEFAULT '',
-                row_hash         TEXT UNIQUE
+                design_file        TEXT DEFAULT '',
+                pdf_path           TEXT DEFAULT '',
+                actual_apply_date  TEXT DEFAULT '',
+                row_hash           TEXT UNIQUE
             );
             CREATE TABLE IF NOT EXISTS settings (
                 key   TEXT PRIMARY KEY,
@@ -39,6 +40,10 @@ def init_db():
         ''')
         try:
             conn.execute("ALTER TABLE changes ADD COLUMN pdf_path TEXT DEFAULT ''")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE changes ADD COLUMN actual_apply_date TEXT DEFAULT ''")
         except Exception:
             pass
 
@@ -120,3 +125,8 @@ def delete_recipient(rid):
 def set_pdf_path(cid, path):
     with get_conn() as conn:
         conn.execute('UPDATE changes SET pdf_path = ? WHERE id = ?', (path, cid))
+
+
+def set_actual_apply_date(cid, date):
+    with get_conn() as conn:
+        conn.execute('UPDATE changes SET actual_apply_date = ? WHERE id = ?', (date, cid))

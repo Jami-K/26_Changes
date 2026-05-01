@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -34,7 +37,7 @@
       <div class="card-body p-0">
         <table class="table table-bordered mb-0">
           <tbody>
-            {% set fields = [
+            {% set fields_top = [
               ('notice_date',      '고지일'),
               ('product_code',     '제품코드'),
               ('product_name',     '제품명'),
@@ -42,14 +45,38 @@
               ('mixable',          '혼용가능여부'),
               ('change_content',   '변경내용'),
               ('apply_date',       '적용예정일'),
-              ('notes',            '특이사항'),
             ] %}
-            {% for key, label in fields %}
+            {% for key, label in fields_top %}
             <tr>
               <td class="label-cell" style="width: 130px;">{{ label }}</td>
               <td style="white-space: pre-wrap;">{{ change[key] or '-' }}</td>
             </tr>
             {% endfor %}
+            <tr>
+              <td class="label-cell">실적용일</td>
+              <td>
+                {% if is_admin %}
+                <form method="post" action="/set_apply_date/{{ change.id }}"
+                      class="d-flex gap-2 align-items-center">
+                  <input type="text" class="form-control form-control-sm"
+                         id="actualApplyDatePicker"
+                         name="actual_apply_date"
+                         value="{{ change.actual_apply_date or '' }}"
+                         placeholder="날짜 선택"
+                         style="max-width: 170px;" readonly>
+                  <button class="btn btn-sm btn-navy" type="submit">
+                    <i class="bi bi-save"></i>
+                  </button>
+                </form>
+                {% else %}
+                  {{ change.actual_apply_date or '-' }}
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td class="label-cell">특이사항</td>
+              <td style="white-space: pre-wrap;">{{ change.notes or '-' }}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -202,68 +229,28 @@ document.addEventListener('keydown', e => {
 {% endif %}
 
 {% if is_admin %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
 <script>
-let fbModal = null;
-
-function openFileBrowser() {
-  if (!fbModal) fbModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
-  fbLoad('');
-  fbModal.show();
-}
-
-async function fbLoad(path) {
-  const listEl = document.getElementById('fbList');
-  const pathEl = document.getElementById('fbCurrentPath');
-  listEl.innerHTML = '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>로딩 중...</div>';
-  try {
-    const url = '/browse' + (path ? '?path=' + encodeURIComponent(path) : '');
-    const res  = await fetch(url);
-    const data = await res.json();
-    if (data.error) {
-      listEl.innerHTML = `<div class="text-danger px-3 py-3 small"><i class="bi bi-exclamation-triangle me-1"></i>${data.error}</div>`;
-      return;
-    }
-    pathEl.textContent = data.path;
-    listEl.innerHTML = '';
-    if (!data.entries.length) {
-      listEl.innerHTML = '<div class="text-muted px-3 py-3 small">항목이 없습니다.</div>';
-      return;
-    }
-    data.entries.forEach(e => {
-      const row  = document.createElement('div');
-      row.className = 'd-flex align-items-center px-3 py-2 border-bottom fb-row';
-      row.style.cursor = 'pointer';
-
-      const icon = document.createElement('i');
-      icon.className = 'bi me-2 flex-shrink-0 ';
-      if (e.type === 'parent') icon.className += 'bi-arrow-up-circle text-secondary';
-      else if (e.type === 'dir') icon.className += 'bi-folder-fill text-warning';
-      else icon.className += 'bi-file-earmark-pdf-fill text-danger';
-
-      const label = document.createElement('span');
-      label.className = 'text-truncate';
-      label.textContent = e.name;
-
-      row.appendChild(icon);
-      row.appendChild(label);
-
-      if (e.type === 'pdf') {
-        row.addEventListener('click', () => {
-          document.getElementById('pdfPathInput').value = e.path;
-          fbModal.hide();
-        });
-      } else {
-        row.addEventListener('click', () => fbLoad(e.path));
-      }
-      listEl.appendChild(row);
-    });
-  } catch {
-    listEl.innerHTML = '<div class="text-danger px-3 py-3 small">오류가 발생했습니다.</div>';
-  }
-}
+flatpickr('#actualApplyDatePicker', {
+  locale: 'ko',
+  dateFormat: 'Y-m-d',
+  allowInput: false,
+  disableMobile: true,
+  onReady(_, __, fp) {
+    fp.calendarContainer.style.setProperty('--navy', '#1A356E');
+  },
+});
 </script>
 <style>
-.fb-row:hover { background: #EEF1FA; }
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+  background: #1A356E;
+  border-color: #1A356E;
+}
+.flatpickr-day:hover {
+  background: #E8ECF5;
+}
 </style>
 {% endif %}
 {% endblock %}

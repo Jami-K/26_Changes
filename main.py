@@ -10,7 +10,7 @@ from flask import (Flask, abort, jsonify, redirect, render_template,
 
 from database import (add_recipient, delete_recipient,
                       get_all_changes, get_change_by_id, get_recipients,
-                      get_setting, init_db, set_setting)
+                      get_setting, init_db, set_actual_apply_date, set_setting)
 from excel_reader import sync_excel
 from pptx_gen import generate_pptx
 
@@ -161,6 +161,17 @@ def serve_pdf(cid):
     fname = f"{change['product_code']}_{change['notice_date']}.pdf"
     return send_file(path, mimetype='application/pdf',
                      as_attachment=False, download_name=fname)
+
+
+@app.route('/set_apply_date/<int:cid>', methods=['POST'])
+def set_apply_date(cid):
+    if not is_admin():
+        abort(403)
+    if not get_change_by_id(cid):
+        abort(404)
+    date = request.form.get('actual_apply_date', '').strip()
+    set_actual_apply_date(cid, date)
+    return redirect(url_for('detail', cid=cid))
 
 
 @app.route('/upload_pdf/<int:cid>', methods=['POST'])

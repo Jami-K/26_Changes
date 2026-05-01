@@ -38,6 +38,7 @@
           <th>변경자재</th>
           <th>혼용가능여부</th>
           <th>적용예정일</th>
+          <th>실적용일</th>
           <th style="width:80px;"></th>
         </tr>
       </thead>
@@ -59,6 +60,7 @@
             {% endif %}
           </td>
           <td>{{ c.apply_date or '-' }}</td>
+          <td>{{ c.actual_apply_date or '-' }}</td>
           <td>
             <a href="/detail/{{ c.id }}" class="btn btn-sm btn-navy"
                onclick="event.stopPropagation()">
