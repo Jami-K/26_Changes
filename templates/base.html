@@ -37,7 +37,7 @@
   <nav class="navbar navbar-dark navbar-expand-lg px-3 mb-4">
     <a class="navbar-brand fw-bold" href="/"><i class="bi bi-box-seam me-2"></i>자재 변경점 관리</a>
     <div class="navbar-nav ms-auto d-flex flex-row gap-1">
-      <a class="nav-link text-white px-3 py-2 {% if request.path == '/' %}active{% endif %}" href="/">
+      <a class="nav-link text-white px-3 py-2 {% if request.path == '/' and request.args.get('view') == 'list' %}active{% endif %}" href="/?view=list">
         <i class="bi bi-list-ul me-1"></i>변경점 목록
       </a>
       <a class="nav-link text-white px-3 py-2 {% if request.path == '/settings' %}active{% endif %}" href="/settings">

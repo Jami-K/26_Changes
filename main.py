@@ -105,10 +105,11 @@ threading.Thread(target=_bg_sync, daemon=True).start()
 @app.route('/')
 def index():
     q = request.args.get('q', '').strip()
+    view = request.args.get('view', 'grid')
     changes = get_all_changes(q)
     last_sync = get_setting('last_sync', '-')
     return render_template('list.html', changes=changes, q=q,
-                           last_sync=last_sync, is_admin=is_admin())
+                           last_sync=last_sync, view=view)
 
 
 @app.route('/detail/<int:cid>')
