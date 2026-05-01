@@ -24,6 +24,7 @@ def init_db():
                 apply_date       TEXT,
                 notes            TEXT,
                 design_file      TEXT DEFAULT '',
+                pdf_path         TEXT DEFAULT '',
                 row_hash         TEXT UNIQUE
             );
             CREATE TABLE IF NOT EXISTS settings (
@@ -36,6 +37,10 @@ def init_db():
                 email TEXT NOT NULL
             );
         ''')
+        try:
+            conn.execute("ALTER TABLE changes ADD COLUMN pdf_path TEXT DEFAULT ''")
+        except Exception:
+            pass
 
 
 def get_all_changes(search=''):
@@ -110,3 +115,8 @@ def add_recipient(name, email):
 def delete_recipient(rid):
     with get_conn() as conn:
         conn.execute('DELETE FROM recipients WHERE id = ?', (rid,))
+
+
+def set_pdf_path(cid, path):
+    with get_conn() as conn:
+        conn.execute('UPDATE changes SET pdf_path = ? WHERE id = ?', (path, cid))

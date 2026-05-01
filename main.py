@@ -10,7 +10,7 @@ from flask import (Flask, abort, jsonify, redirect, render_template,
 
 from database import (add_recipient, delete_recipient,
                       get_all_changes, get_change_by_id, get_recipients,
-                      get_setting, init_db, set_setting)
+                      get_setting, init_db, set_pdf_path, set_setting)
 from excel_reader import sync_excel
 from pptx_gen import generate_pptx
 
@@ -75,6 +75,10 @@ def check_pptx_auth() -> bool:
     return session.get('pptx_auth') is True
 
 
+def is_admin() -> bool:
+    return not bool(get_setting('pptx_pw_hash')) or session.get('pptx_auth') is True
+
+
 # ── 백그라운드 동기화 ─────────────────────────────────────────────────
 
 def _do_sync():
@@ -113,7 +117,8 @@ def detail(cid):
     folder = (change.get('design_file') or '').strip()
     images = get_images_in_folder(folder)
     image_list = [{'idx': i, 'name': os.path.basename(p)} for i, p in enumerate(images)]
-    return render_template('detail.html', change=change, image_list=image_list)
+    return render_template('detail.html', change=change, image_list=image_list,
+                           is_admin=is_admin())
 
 
 @app.route('/image/<int:cid>/<int:idx>')
@@ -129,6 +134,8 @@ def serve_image(cid, idx):
 
 @app.route('/mail/<int:cid>')
 def mail(cid):
+    if not is_admin():
+        abort(403)
     change = get_change_by_id(cid)
     if not change:
         abort(404)
@@ -137,6 +144,30 @@ def mail(cid):
     subject    = f"[변경점 공유] {change.get('product_name', '')} - {change.get('changed_material', '')} 변경"
     return render_template('mail.html', change=change, body=body,
                            recipients=recipients, subject=subject)
+
+
+@app.route('/pdf/<int:cid>')
+def serve_pdf(cid):
+    change = get_change_by_id(cid)
+    if not change:
+        abort(404)
+    path = (change.get('pdf_path') or '').strip()
+    if not path or not os.path.isfile(path):
+        abort(404)
+    return send_file(path, mimetype='application/pdf',
+                     as_attachment=False,
+                     download_name=os.path.basename(path))
+
+
+@app.route('/set_pdf/<int:cid>', methods=['POST'])
+def set_pdf(cid):
+    if not is_admin():
+        abort(403)
+    if not get_change_by_id(cid):
+        abort(404)
+    path = request.form.get('pdf_path', '').strip()
+    set_pdf_path(cid, path)
+    return redirect(url_for('detail', cid=cid))
 
 
 # ── PPTX 탭 (비밀번호 보호) ───────────────────────────────────────────

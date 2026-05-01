@@ -5,13 +5,20 @@
   <h5 class="mb-0 fw-bold" style="color: var(--navy);">
     <i class="bi bi-file-earmark-text me-2"></i>변경점 상세
   </h5>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
+    {% if is_admin %}
     <a href="/mail/{{ change.id }}" class="btn btn-outline-primary">
       <i class="bi bi-envelope me-1"></i>메일 작성
     </a>
     <a href="/pptx_view/{{ change.id }}" target="_blank" class="btn btn-navy">
       <i class="bi bi-file-earmark-slides me-1"></i>PPTX 생성
     </a>
+    {% endif %}
+    {% if change.pdf_path %}
+    <a href="/pdf/{{ change.id }}" target="_blank" class="btn btn-outline-danger">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF 보기
+    </a>
+    {% endif %}
     <a href="/" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>목록
     </a>
@@ -97,6 +104,31 @@
   {% endif %}
 
 </div>
+
+{% if is_admin %}
+<!-- 관리자: PDF 경로 설정 -->
+<div class="card shadow-sm mt-4">
+  <div class="card-header card-header-navy">
+    <i class="bi bi-file-earmark-pdf me-1"></i>PDF 파일 경로 <span class="fw-normal text-secondary small">(관리자)</span>
+  </div>
+  <div class="card-body">
+    <form method="post" action="/set_pdf/{{ change.id }}" class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="text" class="form-control font-monospace"
+             name="pdf_path" value="{{ change.pdf_path or '' }}"
+             placeholder="예: C:\경로\파일.pdf  또는  /home/user/file.pdf"
+             style="max-width: 600px;">
+      <button class="btn btn-navy" type="submit">
+        <i class="bi bi-save me-1"></i>저장
+      </button>
+      {% if change.pdf_path %}
+      <a href="/pdf/{{ change.id }}" target="_blank" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>미리보기
+      </a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endif %}
 
 <!-- 라이트박스 모달 -->
 {% if image_list %}
