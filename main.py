@@ -10,7 +10,7 @@ from flask import (Flask, abort, jsonify, redirect, render_template,
 
 from database import (add_recipient, delete_recipient,
                       get_all_changes, get_change_by_id, get_recipients,
-                      get_setting, init_db, set_pdf_path, set_setting)
+                      get_setting, init_db, set_setting)
 from excel_reader import sync_excel
 from pptx_gen import generate_pptx
 
@@ -20,6 +20,7 @@ app.secret_key = 'mat-change-internal-2026'
 IMAGE_EXTS  = ('png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp')
 SERVER_URL  = 'http://192.168.60.160:5500'
 EXCEL_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.xlsx')
+PDF_DIR     = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pdf')
 
 
 def _build_email_body(change: dict) -> str:
@@ -117,8 +118,9 @@ def detail(cid):
     folder = (change.get('design_file') or '').strip()
     images = get_images_in_folder(folder)
     image_list = [{'idx': i, 'name': os.path.basename(p)} for i, p in enumerate(images)]
+    has_pdf = os.path.isfile(os.path.join(PDF_DIR, f'{cid}.pdf'))
     return render_template('detail.html', change=change, image_list=image_list,
-                           is_admin=is_admin())
+                           is_admin=is_admin(), has_pdf=has_pdf)
 
 
 @app.route('/image/<int:cid>/<int:idx>')
@@ -151,22 +153,26 @@ def serve_pdf(cid):
     change = get_change_by_id(cid)
     if not change:
         abort(404)
-    path = (change.get('pdf_path') or '').strip()
-    if not path or not os.path.isfile(path):
+    path = os.path.join(PDF_DIR, f'{cid}.pdf')
+    if not os.path.isfile(path):
         abort(404)
+    fname = f"{change['product_code']}_{change['notice_date']}.pdf"
     return send_file(path, mimetype='application/pdf',
-                     as_attachment=False,
-                     download_name=os.path.basename(path))
+                     as_attachment=False, download_name=fname)
 
 
-@app.route('/set_pdf/<int:cid>', methods=['POST'])
-def set_pdf(cid):
+@app.route('/upload_pdf/<int:cid>', methods=['POST'])
+def upload_pdf(cid):
     if not is_admin():
         abort(403)
-    if not get_change_by_id(cid):
+    change = get_change_by_id(cid)
+    if not change:
         abort(404)
-    path = request.form.get('pdf_path', '').strip()
-    set_pdf_path(cid, path)
+    f = request.files.get('pdf_file')
+    if not f or not f.filename.lower().endswith('.pdf'):
+        return redirect(url_for('detail', cid=cid))
+    os.makedirs(PDF_DIR, exist_ok=True)
+    f.save(os.path.join(PDF_DIR, f'{cid}.pdf'))
     return redirect(url_for('detail', cid=cid))
 
 

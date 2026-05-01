@@ -14,7 +14,7 @@
       <i class="bi bi-file-earmark-slides me-1"></i>PPTX 생성
     </a>
     {% endif %}
-    {% if change.pdf_path %}
+    {% if has_pdf %}
     <a href="/pdf/{{ change.id }}" target="_blank" class="btn btn-outline-danger">
       <i class="bi bi-file-earmark-pdf me-1"></i>PDF 보기
     </a>
@@ -106,25 +106,28 @@
 </div>
 
 {% if is_admin %}
-<!-- 관리자: PDF 경로 설정 -->
+<!-- 관리자: PDF 업로드 -->
 <div class="card shadow-sm mt-4">
   <div class="card-header card-header-navy">
-    <i class="bi bi-file-earmark-pdf me-1"></i>PDF 파일 경로 <span class="fw-normal text-secondary small">(관리자)</span>
+    <i class="bi bi-file-earmark-pdf me-1"></i>PDF 파일
+    <span class="fw-normal text-secondary small">(관리자)</span>
   </div>
   <div class="card-body">
-    <form method="post" action="/set_pdf/{{ change.id }}" class="d-flex gap-2 align-items-center flex-wrap">
-      <input type="text" class="form-control font-monospace"
-             name="pdf_path" value="{{ change.pdf_path or '' }}"
-             placeholder="예: C:\경로\파일.pdf  또는  /home/user/file.pdf"
-             style="max-width: 600px;">
-      <button class="btn btn-navy" type="submit">
-        <i class="bi bi-save me-1"></i>저장
-      </button>
-      {% if change.pdf_path %}
+    {% if has_pdf %}
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i>PDF 등록됨</span>
       <a href="/pdf/{{ change.id }}" target="_blank" class="btn btn-outline-danger btn-sm">
         <i class="bi bi-box-arrow-up-right me-1"></i>미리보기
       </a>
-      {% endif %}
+    </div>
+    {% endif %}
+    <form method="post" action="/upload_pdf/{{ change.id }}"
+          enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="file" class="form-control" name="pdf_file" accept=".pdf"
+             style="max-width: 400px;" required>
+      <button class="btn btn-navy" type="submit">
+        <i class="bi bi-upload me-1"></i>{{ 'PDF 교체' if has_pdf else 'PDF 업로드' }}
+      </button>
     </form>
   </div>
 </div>
@@ -195,6 +198,72 @@ document.addEventListener('keydown', e => {
 <style>
 .image-card { cursor: pointer; transition: box-shadow .15s; }
 .image-card:hover { box-shadow: 0 0 0 2px var(--navy) !important; }
+</style>
+{% endif %}
+
+{% if is_admin %}
+<script>
+let fbModal = null;
+
+function openFileBrowser() {
+  if (!fbModal) fbModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+  fbLoad('');
+  fbModal.show();
+}
+
+async function fbLoad(path) {
+  const listEl = document.getElementById('fbList');
+  const pathEl = document.getElementById('fbCurrentPath');
+  listEl.innerHTML = '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>로딩 중...</div>';
+  try {
+    const url = '/browse' + (path ? '?path=' + encodeURIComponent(path) : '');
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.error) {
+      listEl.innerHTML = `<div class="text-danger px-3 py-3 small"><i class="bi bi-exclamation-triangle me-1"></i>${data.error}</div>`;
+      return;
+    }
+    pathEl.textContent = data.path;
+    listEl.innerHTML = '';
+    if (!data.entries.length) {
+      listEl.innerHTML = '<div class="text-muted px-3 py-3 small">항목이 없습니다.</div>';
+      return;
+    }
+    data.entries.forEach(e => {
+      const row  = document.createElement('div');
+      row.className = 'd-flex align-items-center px-3 py-2 border-bottom fb-row';
+      row.style.cursor = 'pointer';
+
+      const icon = document.createElement('i');
+      icon.className = 'bi me-2 flex-shrink-0 ';
+      if (e.type === 'parent') icon.className += 'bi-arrow-up-circle text-secondary';
+      else if (e.type === 'dir') icon.className += 'bi-folder-fill text-warning';
+      else icon.className += 'bi-file-earmark-pdf-fill text-danger';
+
+      const label = document.createElement('span');
+      label.className = 'text-truncate';
+      label.textContent = e.name;
+
+      row.appendChild(icon);
+      row.appendChild(label);
+
+      if (e.type === 'pdf') {
+        row.addEventListener('click', () => {
+          document.getElementById('pdfPathInput').value = e.path;
+          fbModal.hide();
+        });
+      } else {
+        row.addEventListener('click', () => fbLoad(e.path));
+      }
+      listEl.appendChild(row);
+    });
+  } catch {
+    listEl.innerHTML = '<div class="text-danger px-3 py-3 small">오류가 발생했습니다.</div>';
+  }
+}
+</script>
+<style>
+.fb-row:hover { background: #EEF1FA; }
 </style>
 {% endif %}
 {% endblock %}
